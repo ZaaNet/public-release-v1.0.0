@@ -9,7 +9,6 @@ const mainServerClient = axios_1.default.create({
     timeout: 30000,
     headers: {
         'content-type': 'application/json',
-        'x-api-key': process.env.MAIN_SERVER_API_KEY,
         'x-contract-id': process.env.CONTRACT_ID
     }
 });

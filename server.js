@@ -41,8 +41,8 @@ function validateEnvironment() {
 }
 // SSL certificate loading
 function loadSSLCertificates() {
-    const keyPath = path_1.default.resolve(__dirname, "../certs/key.pem");
-    const certPath = path_1.default.resolve(__dirname, "../certs/cert.pem");
+    const keyPath = path_1.default.resolve(__dirname, `${process.env.NODE_ENV === 'production' ? './certs/key.pem' : '../certs/key.pem'}`);
+    const certPath = path_1.default.resolve(__dirname, `${process.env.NODE_ENV === 'production' ? './certs/cert.pem' : '../certs/cert.pem'}`);
     try {
         if (!fs_1.default.existsSync(keyPath) || !fs_1.default.existsSync(certPath)) {
             console.warn(`SSL certificates not found`);
@@ -123,7 +123,7 @@ function startServer() {
         app.use("/api/onboard", onboard_routes_1.default);
         app.use("/api/analytics", manageSession_routes_1.default);
         // Portal frontend serving with simplified React support
-        const buildPath = path_1.default.resolve(__dirname, "../portal-gateway/dist");
+        const buildPath = path_1.default.resolve(__dirname, `${process.env.NODE_ENV === 'production' ? '../dist' : '../portal-gateway/dist'}`);
         const indexPath = path_1.default.resolve(buildPath, "index.html");
         if (fs_1.default.existsSync(indexPath)) {
             // Serve static assets with proper headers
