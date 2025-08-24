@@ -169,21 +169,21 @@ function startServer() {
         }
         // Server configuration
         const HOST = process.env.HOST || "0.0.0.0";
-        const HTTPS_PORT = Number(process.env.HTTPS_PORT) || 443;
-        const HTTP_PORT = Number(process.env.HTTP_PORT) || 80;
+        const HTTPS_PORTAL_PORT = Number(process.env.HTTPS_PORTAL_PORT) || 443;
+        const PORTAL_PORT = Number(process.env.PORTAL_PORT) || 3000;
         const sslCerts = loadSSLCertificates();
         let httpsServer = null;
         // HTTPS server
         if (sslCerts && process.env.ENABLE_HTTPS !== "false") {
             httpsServer = https_1.default.createServer(sslCerts, app);
-            httpsServer.listen(HTTPS_PORT, HOST, () => {
-                console.log(`🔒 ZaaNet HTTPS Server (FILTER) running at https://${HOST}:${HTTPS_PORT}`);
+            httpsServer.listen(HTTPS_PORTAL_PORT, HOST, () => {
+                console.log(`🔒 ZaaNet HTTPS Server (FILTER) running at https://${HOST}:${HTTPS_PORTAL_PORT}`);
             });
         }
         // HTTP server (always start for captive portal compatibility)
         const httpServer = http_1.default.createServer(app);
-        httpServer.listen(HTTP_PORT, HOST, () => {
-            console.log(`ZaaNet HTTP Server (FILTER) running at http://${HOST}:${HTTP_PORT}`);
+        httpServer.listen(PORTAL_PORT, HOST, () => {
+            console.log(`ZaaNet HTTP Server (FILTER) running at http://${HOST}:${PORTAL_PORT}`);
         });
         // Graceful shutdown
         const shutdown = () => __awaiter(this, void 0, void 0, function* () {
