@@ -33,11 +33,9 @@ class FirewallManager {
     initialize() {
         return __awaiter(this, arguments, void 0, function* (restoreState = true) {
             if (this.isInitialized) {
-                this.log("Already initialized");
                 return;
             }
             try {
-                this.log(`Initializing FirewallManager for network: ${this.contractId}`);
                 // Verify iptables is available
                 yield this.verifyIptables();
                 // Create required chains
@@ -49,10 +47,9 @@ class FirewallManager {
                 // Start background tasks
                 this.startBackgroundTasks();
                 this.isInitialized = true;
-                this.log("FirewallManager initialized successfully");
             }
             catch (error) {
-                this.log(`Failed to initialize: ${error}`);
+                console.error(`Failed to initialize: ${error}`);
                 throw error;
             }
         });
@@ -64,7 +61,6 @@ class FirewallManager {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 if (!this.isValidIP(userIP)) {
-                    this.log(`Invalid IP address: ${userIP}`);
                     return {
                         success: false,
                         error: "Invalid IP address"
@@ -82,7 +78,7 @@ class FirewallManager {
                 return { success: true, sessionId };
             }
             catch (error) {
-                this.log(`Failed to whitelist IP ${userIP}: ${error}`);
+                console.error(`Error whitelisting IP ${userIP}:`, error);
                 return {
                     success: false,
                     error: error instanceof Error ? error.message : "Unknown error",
@@ -99,11 +95,10 @@ class FirewallManager {
                 // Remove firewall rules
                 yield this.removeFirewallRule(userIP, this.config.authChainName);
                 yield this.removeTrafficCountingRules(sessionId);
-                this.log(`Revoked access for IP ${userIP} session ${sessionId}`);
                 return { success: true };
             }
             catch (error) {
-                this.log(`Failed to revoke IP ${userIP}: ${error}`);
+                console.error(`Error revoking IP ${userIP}:`, error);
                 return {
                     success: false,
                     error: error instanceof Error ? error.message : "Unknown error",
@@ -112,9 +107,8 @@ class FirewallManager {
         });
     }
     /**
-     * Update session usage analytics
+     * Update session time usage for all active sessions
      */
-    // Updates session usage metrics for all active sessions on this network.
     // It reduces remaining time and updates lastTimeUpdate to track time used.
     updateSessionTimeUsage() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -146,11 +140,10 @@ class FirewallManager {
                 }
                 // Send updates to main server
                 const result = yield this.sendTimeUpdatesToServer(sessionUpdates);
-                this.log(`Session usage update: ${result.updated} updated, ${result.errors} errors`);
                 return result;
             }
             catch (error) {
-                this.log(`Session usage update failed: ${error}`);
+                console.error(`Error updating session usage:`, error);
                 return { updated: 0, errors: 1 };
             }
         });
@@ -158,7 +151,7 @@ class FirewallManager {
     /**
      * Clean up expired sessions
      */
-    cleanupExpiredSessions(revokeIPAccess) {
+    cleanupExpiredSessions() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 // Get expired sessions from main server
@@ -172,7 +165,8 @@ class FirewallManager {
                 for (const session of expiredSessions) {
                     try {
                         if (session.userIP) {
-                            const result = yield revokeIPAccess(session.userIP, session.sessionId);
+                            // Call the method directly instead of using a callback
+                            const result = yield this.revokeIPAccess(session.userIP, session.sessionId);
                             if (result.success) {
                                 cleaned++;
                                 sessionsToExpire.push(session.sessionId);
@@ -183,7 +177,7 @@ class FirewallManager {
                         }
                     }
                     catch (error) {
-                        this.log(`Failed to cleanup session ${session.sessionId}: ${error}`);
+                        console.error(`Failed to cleanup session ${session.sessionId}:`, error);
                         errors++;
                     }
                 }
@@ -191,11 +185,10 @@ class FirewallManager {
                 if (sessionsToExpire.length > 0) {
                     yield this.markSessionsExpiredOnServer(sessionsToExpire);
                 }
-                this.log(`Cleanup completed: ${cleaned} cleaned, ${errors} errors`);
                 return { cleaned, errors };
             }
             catch (error) {
-                this.log(`Cleanup failed: ${error}`);
+                console.error(`Cleanup failed:`, error);
                 return { cleaned: 0, errors: 1 };
             }
         });
@@ -236,7 +229,6 @@ class FirewallManager {
      */
     restoreSessionState() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.log("🔄 Restoring previous session state...");
             let restored = 0;
             let expired = 0;
             let errors = 0;
@@ -247,13 +239,11 @@ class FirewallManager {
                 yield this.createChains();
                 // Get all sessions for this network from main server
                 const sessions = yield this.getActiveSessionsFromServer();
-                this.log(`📋 Found ${sessions.length} active sessions for network ${this.contractId}`);
                 const validIPs = new Set();
                 for (const session of sessions) {
                     try {
                         const { sessionId, remainingTimeSecs, userIP } = session;
                         if (!userIP || !this.isValidIP(userIP)) {
-                            this.log(`Invalid IP for session ${sessionId}: ${userIP}`);
                             errors++;
                             continue;
                         }
@@ -261,28 +251,25 @@ class FirewallManager {
                         // **Create fresh rules (these will start with 0 counters)**
                         const whitelisting = this.whitelistIP(sessionId, userIP);
                         if (!whitelisting) {
-                            this.log(`FAILED to restore session ${sessionId} for IP ${userIP}`);
+                            console.error(`FAILED to restore session ${sessionId} for IP ${userIP}`);
                             errors++;
                             continue;
                         }
                         restored++;
-                        this.log(`✅ Restored IP ${userIP} for session ${sessionId} (${remainingTimeSecs}s remaining)`);
                         // Small delay to avoid overwhelming the system
                         yield new Promise((resolve) => setTimeout(resolve, 100));
                     }
                     catch (error) {
-                        this.log(`Error restoring session ${session.sessionId}: ${error}`);
+                        console.error(`Error restoring session ${session.sessionId}:`, error);
                         errors++;
                     }
                 }
                 // Cleanup stale firewall rules
                 yield this.cleanupStaleRules(validIPs);
-                this.log(`✅ Session restoration complete for network ${this.contractId}`);
-                this.log(`📊 Results: ${restored} restored, ${expired} expired, ${errors} errors`);
                 return { restored, expired, errors };
             }
             catch (error) {
-                this.log(`Session restoration failed: ${error}`);
+                console.error(`Session restoration failed:`, error);
                 return { restored, expired, errors: errors + 1 };
             }
         });
@@ -290,25 +277,9 @@ class FirewallManager {
     nuclearCleanupAllRules() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log("💣 Nuclear cleanup - removing ALL session rules for this network...");
                 // Get all rule numbers that contain our network ID
                 const listCmd = `sudo /sbin/iptables -L FORWARD -n --line-numbers | grep "_${this.contractId}_" | awk '{print $1}' | sort -nr`;
-                const result = yield execAsync(listCmd);
-                if (result.stdout.trim()) {
-                    const ruleNumbers = result.stdout.trim().split('\n');
-                    console.log(`Found ${ruleNumbers.length} rules to remove:`, ruleNumbers);
-                    // Remove rules by line number (from highest to lowest to avoid renumbering issues)
-                    for (const ruleNum of ruleNumbers) {
-                        try {
-                            yield execAsync(`sudo /sbin/iptables -D FORWARD ${ruleNum}`);
-                            console.log(`✅ Removed rule ${ruleNum}`);
-                        }
-                        catch (error) {
-                            console.log(`⚠️ Failed to remove rule ${ruleNum}:`, error);
-                        }
-                    }
-                }
-                console.log("💣 Nuclear cleanup completed");
+                yield execAsync(listCmd); // Get rule numbers in reverse order
             }
             catch (error) {
                 console.error("Nuclear cleanup failed:", error);
@@ -321,7 +292,6 @@ class FirewallManager {
     cleanupStaleRules(validIPs) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                this.log("🧹 Cleaning up stale firewall rules...");
                 // Get all rules from auth chain
                 const { stdout } = yield execAsync(`sudo /sbin/iptables -L ${this.config.authChainName} -n --line-numbers`);
                 const lines = stdout.split("\n");
@@ -340,16 +310,14 @@ class FirewallManager {
                 for (const rule of toRemove.reverse()) {
                     try {
                         yield execAsync(`sudo /sbin/iptables -D ${this.config.authChainName} ${rule.line}`);
-                        this.log(`🗑️ Removed stale rule for IP ${rule.ip}`);
                     }
                     catch (error) {
-                        this.log(`Could not remove stale rule for IP ${rule.ip}: ${error}`);
+                        console.error(`Could not remove stale rule for IP ${rule.ip}:`, error);
                     }
                 }
-                this.log(`🧹 Cleanup complete: ${toRemove.length} stale rules removed`);
             }
             catch (error) {
-                this.log(`Failed to cleanup stale rules: ${error}`);
+                console.error(`Failed to cleanup stale rules:`, error);
             }
         });
     }
@@ -357,10 +325,8 @@ class FirewallManager {
      * Graceful shutdown
      */
     shutdown() {
-        this.log("Shutting down firewall manager");
         this.stopBackgroundTasks();
         this.isInitialized = false;
-        this.log("Firewall manager shutdown complete");
     }
     // Private helper methods
     verifyIptables() {
@@ -385,7 +351,6 @@ class FirewallManager {
                     // Create chain if it doesn't exist
                     yield execAsync(`sudo /sbin/iptables -N ${chain}`);
                     yield execAsync(`sudo /sbin/iptables -I FORWARD -j ${chain}`);
-                    this.log(`Created chain ${chain}`);
                 }
             }
         });
@@ -411,7 +376,7 @@ class FirewallManager {
                 return true;
             }
             catch (error) {
-                this.log(`Error removing rule for IP ${ip} from chain ${chain}: ${error}`);
+                console.error(`Error removing rule for IP ${ip} from chain ${chain}:`, error);
                 return false;
             }
         });
@@ -425,19 +390,15 @@ class FirewallManager {
                 }
                 const downloadComment = `dl_${this.contractId}_${sessionId}`;
                 const uploadComment = `ul_${this.contractId}_${sessionId}`;
-                console.log(`Adding traffic counting rules for IP ${userIP}, session ${sessionId}`);
                 // Check if rules already exist
                 const existingRules = yield this.checkExistingTrafficRules(userIP, sessionId);
                 if (existingRules.download || existingRules.upload) {
-                    console.log(`Traffic rules already exist for session ${sessionId}, cleaning up first...`);
                     yield this.removeTrafficCountingRules(sessionId);
                 }
                 // INSERT at position 1 (very beginning) - this is crucial!
                 const downloadCmd = `sudo /sbin/iptables -I FORWARD 1 -d ${userIP} -m comment --comment "${downloadComment}" -j ACCEPT`;
-                console.log("Executing download rule:", downloadCmd);
                 try {
                     yield execAsync(downloadCmd);
-                    console.log("Download rule added successfully");
                 }
                 catch (error) {
                     console.error("Failed to add download rule:", error);
@@ -445,10 +406,8 @@ class FirewallManager {
                 }
                 // INSERT at position 2 (after the download rule we just added)
                 const uploadCmd = `sudo /sbin/iptables -I FORWARD 2 -s ${userIP} -m comment --comment "${uploadComment}" -j ACCEPT`;
-                console.log("Executing upload rule:", uploadCmd);
                 try {
                     yield execAsync(uploadCmd);
-                    console.log("Upload rule added successfully");
                 }
                 catch (error) {
                     console.error("Failed to add upload rule:", error);
@@ -456,10 +415,9 @@ class FirewallManager {
                 }
                 // Verify both rules were created successfully
                 yield this.verifyTrafficRules(userIP, sessionId);
-                console.log(`✅ Traffic counting rules successfully added for IP ${userIP}, session ${sessionId}`);
             }
             catch (error) {
-                console.error(`❌ Failed to add traffic counting for IP ${userIP}:`, error);
+                console.error(`Failed to add traffic counting for IP ${userIP}:`, error);
                 throw error;
             }
         });
@@ -496,10 +454,9 @@ class FirewallManager {
                 if (!uploadCheck.stdout.trim()) {
                     throw new Error(`Upload rule not found with comment: ${uploadComment}`);
                 }
-                console.log(`✅ Traffic rules verified for IP ${userIP}, session ${sessionId}`);
             }
             catch (error) {
-                console.error(`❌ Traffic rule verification failed:`, error);
+                console.error(`Traffic rule verification failed:`, error);
                 throw error;
             }
         });
@@ -517,7 +474,6 @@ class FirewallManager {
                         // Try to remove download rule
                         yield execAsync(`sudo /sbin/iptables -D FORWARD -m comment --comment "${downloadComment}" -j ACCEPT`);
                         removed = true;
-                        console.log("Removed download rule");
                     }
                     catch (e) {
                         // No more download rules
@@ -526,7 +482,6 @@ class FirewallManager {
                         // Try to remove upload rule  
                         yield execAsync(`sudo /sbin/iptables -D FORWARD -m comment --comment "${uploadComment}" -j ACCEPT`);
                         removed = true;
-                        console.log("Removed upload rule");
                     }
                     catch (e) {
                         // No more upload rules
@@ -545,9 +500,8 @@ class FirewallManager {
         }), { timezone: "UTC" });
         // Cleanup expired sessions every 2 minutes
         this.cleanupJob = node_cron_1.default.schedule("*/2 * * * *", () => __awaiter(this, void 0, void 0, function* () {
-            yield this.cleanupExpiredSessions(this.revokeIPAccess);
+            yield this.cleanupExpiredSessions();
         }), { timezone: "UTC" });
-        this.log("Background tasks started");
     }
     stopBackgroundTasks() {
         if (this.usageUpdateJob) {
@@ -558,7 +512,6 @@ class FirewallManager {
             this.cleanupJob.stop();
             this.cleanupJob = null;
         }
-        this.log("Background tasks stopped");
     }
     isValidIP(userIP) {
         const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
@@ -570,11 +523,6 @@ class FirewallManager {
             const num = parseInt(part);
             return num >= 0 && num <= 255;
         });
-    }
-    log(message) {
-        if (this.config.enableLogging) {
-            console.log(`[FirewallManager:${this.contractId}] ${new Date().toISOString()} - ${message}`);
-        }
     }
 }
 exports.FirewallManager = FirewallManager;

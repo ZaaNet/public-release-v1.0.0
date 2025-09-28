@@ -27,7 +27,6 @@ class NetworkManagerSingleton {
     initialize(contractId) {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.isInitialized) {
-                console.log('NetworkManager already initialized');
                 return;
             }
             this.networkManager = new centralManager_service_1.NetworkManager(contractId);

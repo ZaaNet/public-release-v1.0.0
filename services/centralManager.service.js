@@ -23,7 +23,6 @@ class NetworkManager {
                 return;
             yield this.firewallManager.initialize(restoreState); // Pass restore flag
             this.isInitialized = true;
-            console.log(`NetworkManager initialized for ${this.contractId}`);
         });
     }
     // Firewall methods

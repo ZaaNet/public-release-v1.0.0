@@ -52,7 +52,6 @@ const connectWiFi = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 userAgent: deviceInfo.userAgent.trim(),
             },
         });
-        console.log(`[PORTAL] Starting session data:`, sessionResponse.data);
         if (!sessionResponse.data.success) {
             console.warn(`[PORTAL] Session start failed: ${sessionResponse.data.error}`);
             res.status(400).json({
@@ -64,7 +63,6 @@ const connectWiFi = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const sessionData = sessionResponse.data;
         // Check if this is a resumed session (already has network access)
         if (sessionData.isExistingSession) {
-            console.log(`[PORTAL] Existing session found: ${sessionData.sessionId}`);
             res.json({
                 success: true,
                 message: "Session already active for this IP",
@@ -82,7 +80,6 @@ const connectWiFi = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         // For new sessions, we need to grant network access
         try {
             const networkManager = (0, networkSingleton_service_1.getNetworkManager)();
-            console.log(`[PORTAL] Granting network access for session ${sessionData.sessionId}`);
             const whitelistResult = yield networkManager.whitelistIP(sessionData.sessionId, deviceInfo.userIP.trim());
             if (!whitelistResult.success) {
                 // Notify main server that network setup failed
@@ -99,7 +96,6 @@ const connectWiFi = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 });
                 return;
             }
-            console.log(`[PORTAL] Successfully whitelisted IP ${deviceInfo.userIP.trim()} for session ${sessionData.sessionId}`);
             // Notify main server that network access was granted successfully
             yield mainServerClient_1.default.post('/api/portal/sessions/network-granted', {
                 voucherCode: voucherCode.trim(),
@@ -108,7 +104,6 @@ const connectWiFi = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 contractId: process.env.CONTRACT_ID,
                 userAgent: deviceInfo.userAgent.trim(),
             });
-            console.log(`[PORTAL] Successfully granted network access for session ${sessionData.sessionId}`);
             // Success response - user gets immediate internet access
             res.json({
                 success: true,
@@ -210,7 +205,6 @@ const pauseSession = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 try {
                     const networkManager = (0, networkSingleton_service_1.getNetworkManager)();
                     yield networkManager.revokeIPAccess(userIP, sessionId);
-                    console.log(`[PORTAL] Revoked network access for session ${sessionId}`);
                 }
                 catch (networkError) {
                     console.error(`[PORTAL] Failed to revoke network access: ${networkError}`);

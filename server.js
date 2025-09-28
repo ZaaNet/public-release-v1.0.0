@@ -58,9 +58,7 @@ function initializeServices() {
         ];
         for (const service of services) {
             try {
-                console.log(`🔄 Initializing ${service.name}...`);
                 yield service.fn();
-                console.log(`✅ ${service.name} initialized`);
             }
             catch (error) {
                 console.error(`Failed to initialize ${service.name}:`, error);
@@ -155,19 +153,17 @@ function startServer() {
             // Shutdown NetworkManager
             try {
                 yield networkSingleton_service_1.networkManagerSingleton;
-                console.log("✅ NetworkManager shutdown complete");
             }
             catch (error) {
-                console.error("❌ Error shutting down NetworkManager:", error);
+                console.error("Error shutting down NetworkManager:", error);
             }
             // Close HTTP server
             httpServer.close(() => {
-                console.log("✅ HTTP server closed");
                 process.exit(0);
             });
             // Force exit after timeout
             setTimeout(() => {
-                console.warn("⚠️ Force shutdown after timeout");
+                console.warn("Force shutdown after timeout");
                 process.exit(1);
             }, 10000);
         });
