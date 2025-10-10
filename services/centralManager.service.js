@@ -10,12 +10,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NetworkManager = void 0;
-const portal_service_1 = require("./portal.service");
+const FirewallManager_1 = require("./FirewallManager");
 class NetworkManager {
     constructor(contractId) {
         this.isInitialized = false;
         this.contractId = contractId;
-        this.firewallManager = new portal_service_1.FirewallManager();
+        this.firewallManager = new FirewallManager_1.FirewallManager();
     }
     initialize() {
         return __awaiter(this, arguments, void 0, function* (restoreState = true) {

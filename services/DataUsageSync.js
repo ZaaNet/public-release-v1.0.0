@@ -20,6 +20,11 @@ const execAsync = (0, util_1.promisify)(child_process_1.exec);
 class DataUsageSync {
     constructor() {
         this.contractId = process.env.CONTRACT_ID || '';
+        this.config = {
+            authChainName: "ZAANET_AUTH_USERS",
+            blockChainName: "ZAANET_BLOCKED",
+            enableLogging: true,
+        };
     }
     getActiveSessions() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -79,26 +84,39 @@ class DataUsageSync {
             try {
                 const downloadComment = `dl_${this.contractId}_${sessionId}`;
                 const uploadComment = `ul_${this.contractId}_${sessionId}`;
-                const cmd = `sudo /sbin/iptables -L FORWARD -n -v -x | grep -E "(${downloadComment}|${uploadComment})"`;
+                // Get all rules from AUTH chain (no grep needed)
+                const cmd = `sudo /sbin/iptables -L ${this.config.authChainName} -n -v -x`;
                 const result = yield execAsync(cmd);
                 let downloadBytes = 0;
                 let uploadBytes = 0;
+                let foundDownload = false;
+                let foundUpload = false;
                 if (result.stdout.trim()) {
                     result.stdout.split('\n').forEach(line => {
                         const trimmedLine = line.trim();
                         if (!trimmedLine)
                             return;
-                        const columns = trimmedLine.split(/\s+/);
-                        if (columns.length >= 2) {
-                            const bytes = parseInt(columns[1]) || 0;
-                            if (trimmedLine.includes(downloadComment)) {
-                                downloadBytes = bytes;
+                        // Check for download counter
+                        if (trimmedLine.includes(downloadComment)) {
+                            const columns = trimmedLine.split(/\s+/);
+                            if (columns.length >= 2) {
+                                downloadBytes = parseInt(columns[1]) || 0;
+                                foundDownload = true;
                             }
-                            if (trimmedLine.includes(uploadComment)) {
-                                uploadBytes = bytes;
+                        }
+                        // Check for upload counter
+                        if (trimmedLine.includes(uploadComment)) {
+                            const columns = trimmedLine.split(/\s+/);
+                            if (columns.length >= 2) {
+                                uploadBytes = parseInt(columns[1]) || 0;
+                                foundUpload = true;
                             }
                         }
                     });
+                }
+                // Log warning if rules weren't found
+                if (!foundDownload || !foundUpload) {
+                    console.warn(`Warning: Session ${sessionId} rules not found in iptables. Download: ${foundDownload}, Upload: ${foundUpload}`);
                 }
                 return {
                     downloadBytes,
@@ -228,6 +246,9 @@ class DataUsageSync {
                     systemMetrics
                 });
                 const result = yield response.data;
+                if (!result.success) {
+                    console.error('Failed to update system metrics:', result.error);
+                }
             }
             catch (error) {
                 console.error('Error syncing system metrics:', error);
@@ -254,8 +275,12 @@ class DataUsageSync {
 }
 // Function to start the sync interval
 function startDataUsageSync() {
-    const dataSync = new DataUsageSync();
-    setInterval(() => __awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
+        const dataSync = new DataUsageSync();
+        // Start syncing immediately, then every 10 seconds
         yield dataSync.syncAll();
-    }), 60000);
+        setInterval(() => __awaiter(this, void 0, void 0, function* () {
+            yield dataSync.syncAll();
+        }), 60000);
+    });
 }

@@ -208,6 +208,12 @@ const pauseSession = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 }
                 catch (networkError) {
                     console.error(`[PORTAL] Failed to revoke network access: ${networkError}`);
+                    res.status(500).json({
+                        success: false,
+                        message: 'Session paused but failed to revoke network access',
+                        error: networkError instanceof Error ? networkError.message : 'Unknown error'
+                    });
+                    return;
                 }
             }
             res.json({

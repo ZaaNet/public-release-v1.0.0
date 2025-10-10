@@ -29,7 +29,6 @@ const validateVoucher = (req, res) => __awaiter(void 0, void 0, void 0, function
         const response = yield mainServerClient_1.default.post("/api/portal/sessions/validate-voucher", {
             voucherCode
         });
-        console.log("Validation response:", response.data);
         if (response.data.isValid) {
             res.json(Object.assign({}, response.data));
         }
@@ -146,7 +145,6 @@ const extendSession = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             sessionPerHour,
             voucherCode
         });
-        console.log("Extend session response:", response.data);
         if (response.data.success) {
             res.status(200).json(Object.assign({ success: true, message: 'Session extended successfully' }, response.data));
         }

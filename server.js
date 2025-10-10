@@ -21,7 +21,7 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const http_1 = __importDefault(require("http"));
-const dataHandler_1 = require("./services/dataHandler");
+const DataUsageSync_1 = require("./services/DataUsageSync");
 const networkSingleton_service_1 = require("./services/networkSingleton.service");
 const onboard_routes_1 = __importDefault(require("./routes/onboard.routes"));
 const manageSession_routes_1 = __importDefault(require("./routes/manageSession.routes"));
@@ -53,7 +53,7 @@ function initializeServices() {
             },
             {
                 name: "Data Usage Sync",
-                fn: () => (0, dataHandler_1.startDataUsageSync)(),
+                fn: () => (0, DataUsageSync_1.startDataUsageSync)(),
             }
         ];
         for (const service of services) {
@@ -152,7 +152,7 @@ function startServer() {
             console.log("\n🛑 Graceful shutdown initiated...");
             // Shutdown NetworkManager
             try {
-                yield networkSingleton_service_1.networkManagerSingleton;
+                networkSingleton_service_1.networkManagerSingleton;
             }
             catch (error) {
                 console.error("Error shutting down NetworkManager:", error);
