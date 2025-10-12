@@ -42,7 +42,7 @@ class FirewallManager {
                 yield this.verifyChains();
                 // Restore previous session state if requested
                 if (restoreState) {
-                    yield this.restoreSessionState();
+                    yield this.pauseActiveSessionState();
                 }
                 // Start background tasks
                 this.startBackgroundTasks();
@@ -273,9 +273,9 @@ class FirewallManager {
     /**
      * Restore session state from database after server restart
      */
-    restoreSessionState() {
+    pauseActiveSessionState() {
         return __awaiter(this, void 0, void 0, function* () {
-            let restored = 0;
+            let paused = 0;
             let expired = 0;
             let errors = 0;
             try {
@@ -299,30 +299,33 @@ class FirewallManager {
                             expired++;
                             continue;
                         }
-                        validIPs.add(userIP);
-                        // Create fresh rules
-                        const result = yield this.whitelistIP(sessionId, userIP);
-                        if (!result.success) {
-                            console.error(`Failed to restore session ${sessionId} for IP ${userIP}`);
+                        // Notify main server to pause the session
+                        const pauseResponse = yield mainServerClient_1.default.post('/api/portal/sessions/pause', {
+                            sessionId,
+                            userIP,
+                            contractId: process.env.CONTRACT_ID,
+                        });
+                        if (!pauseResponse.data.success) {
+                            console.error(`Failed to pause session ${sessionId} for IP ${userIP}`);
                             errors++;
                             continue;
                         }
-                        restored++;
+                        paused++;
                         // Small delay to avoid overwhelming the system
                         yield new Promise((resolve) => setTimeout(resolve, 100));
                     }
                     catch (error) {
-                        console.error(`Error restoring session ${session.sessionId}:`, error);
+                        console.error(`Failed to process session ${session.sessionId}:`, error);
                         errors++;
                     }
                 }
                 // Cleanup any stale firewall rules
                 yield this.cleanupStaleRules(validIPs);
-                return { restored, expired, errors };
+                return { paused, expired, errors };
             }
             catch (error) {
                 console.error(`Session restoration failed:`, error);
-                return { restored, expired, errors: errors + 1 };
+                return { paused, expired, errors: errors + 1 };
             }
         });
     }
