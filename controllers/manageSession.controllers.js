@@ -31,7 +31,7 @@ const getActiveSessionInfo = (req, res) => __awaiter(void 0, void 0, void 0, fun
             return;
         }
         // Call main server to get session info
-        const response = yield mainServerClient_1.default.post('/api/portal/sessions/info', {
+        const response = yield mainServerClient_1.default.post('/portal/sessions/info', {
             userIP,
             sessionId,
             contractId
@@ -68,7 +68,7 @@ const getSessionAnalytics = (req, res) => __awaiter(void 0, void 0, void 0, func
     try {
         const { userIP, sessionId, contractId } = req.body;
         // Call main server to get session analytics
-        const response = yield mainServerClient_1.default.post('/api/portal/sessions/metrics', {
+        const response = yield mainServerClient_1.default.post('/portal/metrics', {
             userIP,
             sessionId,
             contractId

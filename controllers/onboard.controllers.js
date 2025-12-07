@@ -26,7 +26,7 @@ const validateVoucher = (req, res) => __awaiter(void 0, void 0, void 0, function
             return;
         }
         // Call main server to validate voucher
-        const response = yield mainServerClient_1.default.post("/api/portal/sessions/validate-voucher", {
+        const response = yield mainServerClient_1.default.post("/portal/vouchers/validate", {
             voucherCode
         });
         if (response.data.isValid) {
@@ -75,11 +75,12 @@ const checkSessionAuth = (req, res) => __awaiter(void 0, void 0, void 0, functio
             return;
         }
         // Call main server to check session auth
-        const response = yield mainServerClient_1.default.post("/api/portal/sessions/session-auth", {
+        const response = yield mainServerClient_1.default.post("/portal/sessions/auth", {
             userIP: userIP.trim(),
             contractId: process.env.CONTRACT_ID,
         });
         if (response.data.valid) {
+            console.log("Session auth result:", response.data);
             res.status(200).json(response.data);
         }
         else {
@@ -102,7 +103,7 @@ exports.checkSessionAuth = checkSessionAuth;
 const getNetworkInfo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         // Call main server to get network info
-        const response = yield mainServerClient_1.default.get(`/api/portal/network/info/${process.env.CONTRACT_ID}`);
+        const response = yield mainServerClient_1.default.get(`/portal/network/${process.env.CONTRACT_ID}`);
         if (response.data.success) {
             res.status(200).json({
                 success: true,
@@ -138,7 +139,7 @@ const extendSession = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return;
         }
         // Call main server to extend session
-        const response = yield mainServerClient_1.default.post('/api/portal/sessions/extend-session', {
+        const response = yield mainServerClient_1.default.post('/portal/sessions/extend-session', {
             userIP,
             sessionId,
             contractId,
@@ -178,7 +179,7 @@ const getNetworkRating = (req, res) => __awaiter(void 0, void 0, void 0, functio
             return;
         }
         // Call main server to get network rating
-        const response = yield mainServerClient_1.default.get(`/api/portal/network/ratings/${contractId}`);
+        const response = yield mainServerClient_1.default.get(`/portal/network/${contractId}/rating`);
         if (response.data.success) {
             res.status(200).json(Object.assign({ success: true }, response.data.ratingData));
         }
@@ -211,7 +212,7 @@ const rateNetwork = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         // Call main server to rate network
-        const response = yield mainServerClient_1.default.post('/api/portal/network/rate-network', {
+        const response = yield mainServerClient_1.default.post('/portal/network', {
             contractId,
             userIP,
             rating,
@@ -258,7 +259,7 @@ const getUserRating = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return;
         }
         // Call main server to get user rating
-        const response = yield mainServerClient_1.default.get(`/api/portal/network/user-ratings/${contractId}/${userIP}`);
+        const response = yield mainServerClient_1.default.get(`/portal/network/${contractId}/rating/${userIP}`);
         if (response.data.success) {
             res.status(200).json(Object.assign({ success: true }, response.data.ratingData));
         }

@@ -29,7 +29,7 @@ class DataUsageSync {
     getActiveSessions() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const response = yield mainServerClient_1.default.get(`/api/portal/sessions/active?contractId=${this.contractId}`);
+                const response = yield mainServerClient_1.default.get(`/portal/sessions/active?contractId=${this.contractId}`);
                 const data = response.data;
                 if (data.success) {
                     return data.data.sessions;
@@ -66,7 +66,7 @@ class DataUsageSync {
                 if (sessionUpdates.length === 0) {
                     return;
                 }
-                const response = yield mainServerClient_1.default.put(`/api/portal/sessions/update-data-usage`, {
+                const response = yield mainServerClient_1.default.put(`/portal/metrics/update-data-usage`, {
                     sessionUpdates,
                 });
                 const result = response.data;
@@ -241,9 +241,13 @@ class DataUsageSync {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const systemMetrics = yield this.collectSystemMetrics();
-                const response = yield mainServerClient_1.default.put(`/api/portal/sessions/update-system-metrics`, {
+                const response = yield mainServerClient_1.default.put(`/portal/metrics/update-system`, {
                     contractId: this.contractId,
-                    systemMetrics
+                    cpuUsage: systemMetrics.cpuUsage,
+                    memoryUsage: systemMetrics.memoryUsage,
+                    temperature: systemMetrics.temperature,
+                    diskUsage: systemMetrics.diskUsage,
+                    uptime: systemMetrics.uptime,
                 });
                 const result = yield response.data;
                 if (!result.success) {

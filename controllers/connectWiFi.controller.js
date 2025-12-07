@@ -44,7 +44,7 @@ const connectWiFi = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         // Call main server to validate voucher and check for existing sessions
-        const sessionResponse = yield mainServerClient_1.default.post('/api/portal/sessions/start', {
+        const sessionResponse = yield mainServerClient_1.default.post('/portal/sessions/start', {
             voucherCode: voucherCode.trim(),
             contractId: process.env.CONTRACT_ID,
             deviceInfo: {
@@ -83,7 +83,7 @@ const connectWiFi = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             const whitelistResult = yield networkManager.whitelistIP(sessionData.sessionId, deviceInfo.userIP.trim());
             if (!whitelistResult.success) {
                 // Notify main server that network setup failed
-                yield mainServerClient_1.default.post('/api/portal/sessions/network-failed', {
+                yield mainServerClient_1.default.post('/portal/sessions/network-failure', {
                     userIP: deviceInfo.userIP.trim(),
                     sessionId: sessionData.sessionId,
                     contractId: process.env.CONTRACT_ID,
@@ -97,7 +97,7 @@ const connectWiFi = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 return;
             }
             // Notify main server that network access was granted successfully
-            yield mainServerClient_1.default.post('/api/portal/sessions/network-granted', {
+            yield mainServerClient_1.default.post('/portal/sessions/confirm-access', {
                 voucherCode: voucherCode.trim(),
                 sessionId: sessionData.sessionId,
                 userIP: deviceInfo.userIP.trim(),
@@ -125,7 +125,7 @@ const connectWiFi = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             console.error("[PORTAL] Network access error:", networkError);
             // Notify main server about network failure so it can clean up
             try {
-                yield mainServerClient_1.default.post('/api/portal/sessions/network-failed', {
+                yield mainServerClient_1.default.post('/portal/sessions/network-failure', {
                     sessionId: sessionData.sessionId,
                     error: networkError instanceof Error ? networkError.message : 'Unknown network error',
                     contractId: process.env.CONTRACT_ID
@@ -194,12 +194,13 @@ const pauseSession = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             return;
         }
         // Notify main server to pause the session
-        const pauseResponse = yield mainServerClient_1.default.post('/api/portal/sessions/pause', {
+        const pauseResponse = yield mainServerClient_1.default.post('/portal/sessions/pause', {
             sessionId,
             userIP,
             contractId: process.env.CONTRACT_ID,
         });
-        if (pauseResponse.data.success) {
+        console.log("Pause Response:", pauseResponse.data);
+        if (pauseResponse.data) {
             // Revoke network access for the paused session
             if ((0, networkSingleton_service_1.isNetworkManagerReady)()) {
                 try {
@@ -219,7 +220,7 @@ const pauseSession = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             res.json({
                 success: true,
                 message: "Session paused successfully",
-                data: pauseResponse.data.data
+                data: pauseResponse.data
             });
         }
         else {
@@ -264,13 +265,13 @@ const resumeSession = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return;
         }
         // Call main server to resume session
-        const resumeResponse = yield mainServerClient_1.default.post('/api/portal/sessions/resume', {
+        const resumeResponse = yield mainServerClient_1.default.post('/portal/sessions/resume', {
             voucherCode: voucherCode.trim(),
             userIP: userIP.trim(),
             userAgent: userAgent === null || userAgent === void 0 ? void 0 : userAgent.trim(),
             contractId: process.env.CONTRACT_ID,
         });
-        if (!resumeResponse.data.success) {
+        if (!resumeResponse.data) {
             res.status(400).json({
                 success: false,
                 error: resumeResponse.data.error || "Failed to resume session",
@@ -285,7 +286,7 @@ const resumeSession = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             if (!whitelistResult.success) {
                 console.error(`[PORTAL] Failed to whitelist IP ${userIP.trim()}:`, whitelistResult.error);
                 // Rollback: remove the whitelisted IP
-                yield mainServerClient_1.default.post('/api/portal/sessions/network-failed', {
+                yield mainServerClient_1.default.post('/portal/sessions/network-failure', {
                     userIP: userIP.trim(),
                     sessionId: sessionData.sessionId,
                     contractId: process.env.CONTRACT_ID,

@@ -241,21 +241,21 @@ class FirewallManager {
     }
     getActiveSessionsFromServer() {
         return __awaiter(this, void 0, void 0, function* () {
-            const response = yield mainServerClient_1.default.get(`/api/portal/sessions/active?contractId=${this.contractId}`);
+            const response = yield mainServerClient_1.default.get(`/`);
             const data = response.data;
             return data.success ? data.data.sessions : [];
         });
     }
     getExpiredSessionsFromServer() {
         return __awaiter(this, void 0, void 0, function* () {
-            const response = yield mainServerClient_1.default.get(`/api/portal/sessions/expired?contractId=${this.contractId}`);
+            const response = yield mainServerClient_1.default.get(`/portal/sessions/expired?contractId=${this.contractId}`);
             const data = response.data;
             return data.success ? data.data.sessions : [];
         });
     }
     sendTimeUpdatesToServer(sessionUpdates) {
         return __awaiter(this, void 0, void 0, function* () {
-            const response = yield mainServerClient_1.default.put(`/api/portal/sessions/update-time`, { sessionUpdates });
+            const response = yield mainServerClient_1.default.put(`/portal/sessions/time`, { sessionUpdates });
             const data = yield response.data;
             return {
                 updated: data.success ? data.data.successCount : 0,
@@ -265,7 +265,7 @@ class FirewallManager {
     }
     markSessionsExpiredOnServer(sessionIds) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield mainServerClient_1.default.put(`/api/portal/sessions/mark-expired`, {
+            yield mainServerClient_1.default.put(`/portal/sessions/expire`, {
                 sessionIds
             });
         });
@@ -300,7 +300,7 @@ class FirewallManager {
                             continue;
                         }
                         // Notify main server to pause the session
-                        const pauseResponse = yield mainServerClient_1.default.post('/api/portal/sessions/pause', {
+                        const pauseResponse = yield mainServerClient_1.default.post('/portal/sessions/pause', {
                             sessionId,
                             userIP,
                             contractId: process.env.CONTRACT_ID,
