@@ -139,7 +139,7 @@ const extendSession = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return;
         }
         // Call main server to extend session
-        const response = yield mainServerClient_1.default.post('/portal/sessions/extend-session', {
+        const response = yield mainServerClient_1.default.post('/portal/sessions/extend', {
             userIP,
             sessionId,
             contractId,
